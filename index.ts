@@ -122,7 +122,7 @@ const plugin = definePlugin({
                 if (message.content.startsWith("!"))
                 {
                     const command = message.content.slice(1).trim().toLowerCase();
-                    if (command === "pushovertest" && pushoverEnabled)
+                    if (command === "pushovertest" && settings.store.pushoverEnabled)
                     {
                         sendPushoverProxy(message.author.username, "This is a test notification.", null, "", "");
                     }
@@ -159,7 +159,7 @@ const plugin = definePlugin({
             const avatarUrl = `https://cdn.discordapp.com/avatars/${message.author.id}/${message.author.avatar}.png`;
             plugin.sendNotification(message.author.username, messageContent, avatarUrl);
 
-            if (!pushoverEnabled)
+            if (!settings.store.pushoverEnabled)
                 return;
 
             // If the message has attachments, grab the first one
