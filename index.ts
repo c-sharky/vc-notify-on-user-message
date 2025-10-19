@@ -24,6 +24,11 @@ const settings = definePluginSettings({
         description: "User IDs to scan messages from (separated by commas)",
         default: "",
     },
+    pushoverEnabled: {
+        type: OptionType.BOOLEAN,
+        description: "Send via Pushover",
+        default: true
+    },
     pushoverUserKey: {
         type: OptionType.STRING,
         description: "Your Pushover user key",
@@ -117,10 +122,14 @@ const plugin = definePlugin({
                 if (message.content.startsWith("!"))
                 {
                     const command = message.content.slice(1).trim().toLowerCase();
-                    if (command === "pushovertest")
+                    if (command === "pushovertest" && pushoverEnabled)
+                    {
+                        sendPushoverProxy(message.author.username, "This is a test notification.", null, "", "");
+                    }
+                    if (command === "notifytest")
                     {
                         const avatarUrl = `https://cdn.discordapp.com/avatars/${message.author.id}/${message.author.avatar}.png`;
-                        sendPushoverProxy(message.author.username, "This is a test notification.", null, "", "");
+                        plugin.sendNotification(message.author.username, "This is a test notification.", avatarUrl);
                     }
                 }
 
@@ -149,6 +158,9 @@ const plugin = definePlugin({
             // Call the plugin's method directly
             const avatarUrl = `https://cdn.discordapp.com/avatars/${message.author.id}/${message.author.avatar}.png`;
             plugin.sendNotification(message.author.username, messageContent, avatarUrl);
+
+            if (!pushoverEnabled)
+                return;
 
             // If the message has attachments, grab the first one
             const attachmentUrl = message.attachments?.[0]?.url ?? null;
