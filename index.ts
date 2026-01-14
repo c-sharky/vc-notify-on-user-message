@@ -78,7 +78,7 @@ async function sendDiscordWebhookPlain(
             finalContent = finalContent.slice(0, 1997) + "...";
         }
 
-        await fetch("http://localhost:3000/webhook", {
+        await fetch("http://localhost:3001/webhook", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -99,7 +99,7 @@ async function sendPushoverProxy(author: string, message: string, attachmentUrl:
     if (!userKey || !apiToken) return;
 
     try {
-        await fetch("http://localhost:3000/push", {
+        await fetch("http://localhost:3001/push", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({

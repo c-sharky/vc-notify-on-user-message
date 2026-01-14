@@ -6,7 +6,7 @@ const FormData = require("form-data");
 const sharp = require("sharp");
 
 const app = express();
-app.use(cors({ origin: "http://localhost" }));
+app.use(cors());
 app.use(bodyParser.json());
 
 // Example POST request:
@@ -100,7 +100,7 @@ app.post("/webhook", async (req, res) => {
     }
 });
 
-const PORT = 3000;
+const PORT = 3001;
 app.listen(PORT, () => {
     console.log(`Pushover proxy server running at http://localhost:${PORT}`);
 });
