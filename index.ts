@@ -5,7 +5,6 @@
  */
 
 import { definePluginSettings } from "@api/Settings";
-import { Devs } from "@utils/constants";
 import definePlugin, { OptionType } from "@utils/types";
 import { FluxDispatcher, MessageActions, UserStore } from "@webpack/common";
 import { Message } from "discord-types/general";
@@ -38,8 +37,63 @@ const settings = definePluginSettings({
         type: OptionType.STRING,
         description: "Your Pushover app API token",
         default: ""
+    },
+    discordWebhookEnabled: {
+        type: OptionType.BOOLEAN,
+        description: "Send message via Discord webhook",
+        default: false
+    },
+    discordWebhookUrl: {
+        type: OptionType.STRING,
+        description: "Discord webhook URL",
+        default: ""
     }
 });
+
+async function sendDiscordWebhookPlain(
+    displayName: string,
+    content: string,
+    avatarUrl: string,
+    messageLink: string,
+    attachments: Attachment[]) {
+
+    const webhookUrl = settings.store.discordWebhookUrl;
+    if (!settings.store.discordWebhookEnabled || !webhookUrl) return;
+
+    try {
+        let finalContent = content;
+
+        // Append attachments as a normal Discord-style link
+        if (attachments.length > 0) {
+            finalContent += "\n\n" + attachments.map(a => a.url).join("\n");
+        }
+
+        // Append jump link (optional but very Discord-like)
+        if (messageLink) {
+            finalContent += `\n\n↪ ${messageLink}`;
+        }
+
+        // Discord hard limit
+        if (finalContent.length > 2000) {
+            finalContent = finalContent.slice(0, 1997) + "...";
+        }
+
+        await fetch(webhookUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                username: displayName,
+                avatar_url: avatarUrl,
+                content: finalContent,
+                allowed_mentions: {
+                    parse: [] // prevent accidental pings
+                }
+            })
+        });
+    } catch (err) {
+        console.warn("Failed to send Discord webhook:", err);
+    }
+}
 
 async function sendPushoverProxy(author: string, message: string, attachmentUrl: string, link: string, link_title: string) {
     const apiToken = settings.store.pushoverApiToken;
@@ -84,7 +138,7 @@ function cleanUpDiscordFormatting(content: string): string {
 const plugin = definePlugin({
     name: "NotifyOnUserMessage",
     description: "Sends a notification if one of the specified users sends a message in any server.",
-    authors: [Devs.Ven],
+    authors: ["c-sharky"],
     settings,
 
     sendNotification(username: string, content: string, avatar: string) {
@@ -150,7 +204,7 @@ const plugin = definePlugin({
                 if (!refContent)
                     refContent = "[Attachment]";
 
-                messageContent = `${messageContent}\n\n[Reply to ${refAuthor}: ${refContent}]`;
+                messageContent = `> **Replying to ${refAuthor}:** ${refContent.replace(/\n/g, "\n> ")}\n\n${messageContent}`;
             }
 
             messageContent = cleanUpDiscordFormatting(messageContent);
@@ -170,6 +224,8 @@ const plugin = definePlugin({
 
             // Pushover notification
             sendPushoverProxy(displayName, messageContent, attachmentUrl, messageLink, "View in Discord");
+
+            sendDiscordWebhookPlain(displayName, messageContent, avatarUrl, messageLink, message.attachments);
         };
 
         FluxDispatcher.subscribe("MESSAGE_CREATE", handler);
