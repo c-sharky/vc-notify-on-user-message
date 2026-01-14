@@ -78,16 +78,14 @@ async function sendDiscordWebhookPlain(
             finalContent = finalContent.slice(0, 1997) + "...";
         }
 
-        await fetch(webhookUrl, {
+        await fetch("http://localhost:3000/webhook", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
+                webhook: webhookUrl,
                 username: displayName,
-                avatar_url: avatarUrl,
-                content: finalContent,
-                allowed_mentions: {
-                    parse: [] // prevent accidental pings
-                }
+                avatar: avatarUrl,
+                content: finalContent
             })
         });
     } catch (err) {

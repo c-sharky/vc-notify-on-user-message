@@ -6,7 +6,7 @@ const FormData = require("form-data");
 const sharp = require("sharp");
 
 const app = express();
-app.use(cors()); // <-- allow all origins
+app.use(cors({ origin: "http://localhost" }));
 app.use(bodyParser.json());
 
 // Example POST request:
@@ -59,6 +59,43 @@ app.post("/push", async (req, res) => {
         res.json({ success: true, response: text });
     } catch (err) {
         console.error("Pushover request failed:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post("/webhook", async (req, res) => {
+    const { webhook, username, avatar, content } = req.body;
+
+    if (!webhook || !content) {
+        return res.status(400).json({ error: "Missing fields" });
+    }
+
+    // Basic safety check
+    if (!webhook.startsWith("https://discord.com/api/webhooks/")) {
+        return res.status(400).json({ error: "Invalid webhook URL" });
+    }
+
+    try {
+        const body = {
+            username: username?.slice(0, 32),
+            content,
+            allowed_mentions: { parse: [] }
+        };
+
+        if (avatar) body.avatar_url = avatar;
+
+        const r = await fetch(webhook, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body)
+        });
+
+        const text = await r.text();
+        if (!r.ok) throw new Error(text);
+
+        res.sendStatus(204);
+    } catch (err) {
+        console.error("Discord webhook failed:", err);
         res.status(500).json({ error: err.message });
     }
 });
